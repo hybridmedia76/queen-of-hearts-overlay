@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Queen of Hearts Lower Third</title>
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #queen-overlay {
+      position: fixed;
+      left: 0;
+      bottom: 0;
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="queen-overlay" width="1920" height="180"
+          data-jackpot="16315.00"
+          role="img" aria-label="Queen of Hearts lower third"></canvas>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById("queen-overlay");
+      const ctx = canvas.getContext("2d");
+      const jackpotCents = Math.round(
+        Number(canvas.dataset.jackpot.replace(/[,$\s]/g, "")) * 100
+      );
+
+      if (!Number.isSafeInteger(jackpotCents) || jackpotCents <= 0) {
+        console.error("Queen of Hearts: check the data-jackpot amount.");
+        return;
+      }
+
+      const shareCents = Math.round(jackpotCents / 2);
+      const jackpotDigits = jackpotCents % 100 === 0 ? 0 : 2;
+      const money = (digits) => new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+      });
+      const shareFormat = money(2);
+      const jackpotFormat = money(jackpotDigits);
+
+      canvas.setAttribute("aria-label", "Queen of Hearts jackpot " +
+        jackpotFormat.format(jackpotCents / 100) + ". Winner’s share " +
+        shareFormat.format(shareCents / 100) + ".");
+
+      const art = new Image();
+
+      art.onerror = () => {
+        console.error("Queen of Hearts: check that the PNG is beside index.html.");
+      };
+
+      art.onload = () => {
+        const base = document.createElement("canvas");
+        base.width = canvas.width;
+        base.height = canvas.height;
+
+        const baseCtx = base.getContext("2d");
+        const scale = base.width / art.naturalWidth;
+        const artHeight = art.naturalHeight * scale;
+        const artTop = base.height - artHeight;
+        baseCtx.drawImage(art, 0, artTop, base.width, artHeight);
+
+        // Replace the printed numbers with a sample of the navy artwork.
+        function clearPrintedAmount(x, y, width, height) {
+          baseCtx.clearRect(x, y, width, height);
+          baseCtx.drawImage(
+            art, 511 / scale, (y - artTop) / scale, 2 / scale, height / scale,
+            x, y, width, height
+          );
+        }
+
+        clearPrintedAmount(204, 95, 306, 76);
+        clearPrintedAmount(510, 132, 124, 37);
+
+        ctx.textAlign = "right";
+        ctx.textBaseline = "alphabetic";
+        let previousShare = "";
+        let previousJackpot = "";
+
+        function draw(progress) {
+          const share = shareFormat.format(Math.round(shareCents * progress) / 100);
+          const jackpot = jackpotFormat.format(jackpotCents * progress / 100);
+
+          if (share === previousShare && jackpot === previousJackpot) return;
+          previousShare = share;
+          previousJackpot = jackpot;
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(base, 0, 0);
+
+          ctx.font = 'italic 900 66px "Arial Black", Arial, sans-serif';
+          ctx.fillStyle = "#f7fbff";
+          ctx.fillText(share, 501, 156, 285);
+
+          ctx.font = 'italic 900 33px "Arial Black", Arial, sans-serif';
+          ctx.fillStyle = "#46eaff";
+          ctx.fillText(jackpot, 629, 162, 115);
+        }
+
+        const countUpMs = 2400;
+        const cycleMs = 10000;
+        let start;
+
+        function animate(now) {
+          if (start === undefined) start = now;
+          const progress = Math.min(1, ((now - start) % cycleMs) / countUpMs);
+          draw(1 - Math.pow(1 - progress, 2.6));
+          requestAnimationFrame(animate);
+        }
+
+        requestAnimationFrame(animate);
+      };
+
+      art.src = "./Queen of Hearts jackpot lower third.png";
+    })();
+  </script>
+</body>
+</html>
